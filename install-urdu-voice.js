@@ -1,9 +1,6 @@
-// Update this once the installer is published as a GitHub Release asset -
-// see installer/BUILD.md for the exact steps (build the .pkg, create a
-// release, upload it, paste its asset URL here). Left as a placeholder so a
-// forgotten update fails obviously (a disabled button + a clear message)
-// instead of silently 404ing when someone clicks Download.
-const INSTALLER_DOWNLOAD_URL = "REPLACE_WITH_GITHUB_RELEASE_ASSET_URL";
+// Published via installer/BUILD.md's release process - repo
+// github.com/qasim2131/read-aloud, release v1.0.
+const INSTALLER_DOWNLOAD_URL = "https://github.com/qasim2131/read-aloud/releases/download/v1.0/ReadAloudUrduVoiceInstaller.pkg";
 
 const downloadBtn = document.getElementById("downloadBtn");
 const statusEl = document.getElementById("status");
