@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Install Urdu Voice</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --label: #1d1d1f;
+    --label-secondary: #6b7280;
+    --separator: rgba(0, 0, 0, 0.1);
+    --accent: #0066cc;
+    --accent-pressed: #0052a3;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--label);
+    -webkit-font-smoothing: antialiased;
+  }
+  .app {
+    max-width: 460px;
+    margin: 64px auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 13px; margin: 8px 0 0; font-weight: 600; color: var(--label); }
+  p { margin: 0; line-height: 1.5; color: var(--label-secondary); }
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    height: 34px;
+    padding: 0 16px;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+  }
+  button:hover:not(:disabled) { background: var(--accent-pressed); }
+  button:disabled { background: var(--separator); color: var(--label-secondary); cursor: default; }
+  a.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+  a.button[aria-disabled="true"] {
+    background: var(--separator);
+    color: var(--label-secondary);
+    pointer-events: none;
+  }
+
+  #status { font-size: 13px; min-height: 18px; font-weight: 500; }
+
+  .steps { margin: 0; padding-left: 20px; color: var(--label-secondary); line-height: 1.7; }
+  .steps code { background: var(--separator); border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+
+  .note {
+    font-size: 12px;
+    background: #f2f2f5;
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    color: var(--label-secondary);
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <h1>Install the Urdu voice</h1>
+    <p>Urdu translation reads aloud using a local, offline voice (Piper) instead of sending your text anywhere. It's a one-time install, about 65&nbsp;MB, and only affects Urdu - every other language is unaffected.</p>
+
+    <a id="downloadBtn" class="button" href="#" download>⬇ Download Urdu Voice Installer</a>
+    <p id="status" aria-live="polite"></p>
+
+    <h2>After it downloads</h2>
+    <ol class="steps">
+      <li>Open it from your Downloads folder.</li>
+      <li>macOS will say it's from an unidentified developer - <strong>right-click</strong> the file and choose <strong>Open</strong>, then click <strong>Open</strong> again in the dialog. (This is a one-time step for any app downloaded outside the App Store - it isn't specific to this installer.)</li>
+      <li>Click <strong>Continue</strong> / <strong>Install</strong> in the installer, and enter your Mac password when asked - the same password you'd use to install any Mac app.</li>
+      <li><strong>Quit and reopen Chrome</strong> (Chrome only checks for this the first time it starts).</li>
+      <li>Open the Read Aloud extension again - Urdu will work automatically, no further setup.</li>
+    </ol>
+
+    <p class="note">No typing, no Terminal - just double-clicking a downloaded file, like installing any other Mac app. Nothing about your browsing or your text is sent anywhere by this installer.</p>
+  </div>
+  <script src="install-urdu-voice.js"></script>
+</body>
+</html>

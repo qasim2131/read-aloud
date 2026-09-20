@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Read Aloud audio player</title>
+</head>
+<body>
+<!--
+  Invisible, never shown to the user. It exists only to own an <audio> element
+  that lives in the EXTENSION's origin instead of the web page's.
+
+  Why: Piper returns raw WAV, which used to be played as a data: URL from an
+  <audio> created by content.js - inside the page. Content scripts share the
+  page's Content-Security-Policy for loading media, so any site serving
+  "media-src 'self'" (or a default-src that covers it) silently blocked it:
+  "Loading media from 'data:audio/wav;base64,...' violates the following
+  Content Security Policy directive". That is exactly why Urdu played on some
+  pages and not others while Chinese - which goes through speechSynthesis, an
+  API no page CSP can touch - worked everywhere. An offscreen document is the
+  extension's own page, so no website's policy applies to it.
+-->
+<script src="offscreen.js"></script>
+</body>
+</html>

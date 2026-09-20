@@ -1,0 +1,9 @@
+{
+  "name": "com.readaloud.piper_tts",
+  "description": "Local Piper TTS host for the Read Aloud extension (Urdu fallback)",
+  "path": "/Users/m1pro16-1tb/Library/Application Support/ReadAloudPiperHost/piper_host.py",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://gpncnfknakbagdfncceheadkndbgpicm/"
+  ]
+}

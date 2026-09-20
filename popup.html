@@ -1,0 +1,348 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Read Aloud</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --label: #1d1d1f;
+    --label-secondary: #6b7280;
+    --separator: rgba(0, 0, 0, 0.1);
+    --fill: #f2f2f5;
+    --fill-pressed: #e5e5ea;
+    --accent: #0066cc;
+    --accent-pressed: #0052a3;
+    --danger: #dc2626;
+    --danger-pressed: #b91c1c;
+    --radius: 8px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    width: 300px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+    background: var(--bg);
+    color: var(--label);
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  .view { display: flex; flex-direction: column; gap: 14px; }
+
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    border: none;
+    border-radius: var(--radius);
+    height: 30px;
+    padding: 0 12px;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.35; cursor: default; }
+
+  #readBtn, #recordBtn {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    height: 32px;
+  }
+  #readBtn:hover:not(:disabled), #recordBtn:hover:not(:disabled) { background: var(--accent-pressed); }
+  #readBtn:active:not(:disabled), #recordBtn:active:not(:disabled) { background: var(--accent-pressed); }
+  #recordBtn.is-recording { background: var(--danger); }
+  #recordBtn.is-recording:hover { background: var(--danger-pressed); }
+
+  #readBtn.is-stop { background: #fef2f2; color: var(--danger); }
+  #readBtn.is-stop:hover { background: #fde3e3; }
+
+  .segmented {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    background: var(--fill);
+    border-radius: var(--radius);
+  }
+  .segmented button {
+    flex: 1;
+    background: transparent;
+    color: var(--label-secondary);
+    font-weight: 500;
+    border-radius: calc(var(--radius) - 2px);
+  }
+  .segmented:not(.mode-switch) button:hover:not(:disabled):not(.is-active) { background: rgba(0, 0, 0, 0.05); }
+  .segmented button:active:not(:disabled) { background: var(--fill-pressed); }
+
+  .mode-switch button.is-active {
+    background: #fff;
+    color: var(--label);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  }
+  .mode-switch button:hover:not(.is-active) { color: var(--label); }
+
+  .settings {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--separator);
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field-row { display: flex; align-items: baseline; justify-content: space-between; }
+  label { font-size: 13px; font-weight: 500; color: var(--label); }
+  .field-value { font-size: 12px; color: var(--label-secondary); font-variant-numeric: tabular-nums; }
+
+  input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
+
+  select, textarea, input[type="text"] {
+    width: 100%;
+    padding: 0 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--separator);
+    background: var(--bg);
+    color: var(--label);
+    font-family: inherit;
+    font-size: 13px;
+  }
+  select, input[type="text"] { height: 28px; }
+  textarea { height: auto; min-height: 84px; padding: 8px; resize: vertical; line-height: 1.4; }
+  select:focus-visible, textarea:focus-visible, input[type="text"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* Voice combo: a native <select id="voice"> stays in the DOM (display:none)
+     as the real source of truth everything else already reads via .value -
+     this is purely the visible replacement for it, so a search box can live
+     INSIDE the opened dropdown instead of as a separate field above it,
+     which a plain <select> has no way to do. */
+  #voice { display: none; }
+  .combo { position: relative; }
+  .combo-trigger {
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--separator);
+    background: var(--bg);
+    color: var(--label);
+    font-family: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .combo-trigger:hover { background: var(--fill); }
+  .combo-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .combo-trigger-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .combo-trigger-caret { flex: none; color: var(--label-secondary); font-size: 10px; }
+  .combo-panel {
+    /* Fixed (not in normal flow, not a permanently-reserved fixed height):
+       no whitespace is ever shown when closed (the panel takes up zero
+       space then, via [hidden]), and opening it doesn't shift or resize
+       anything else in the popup either, since "fixed" positions it
+       against the popup's own viewport rather than pushing later content
+       down. top/max-height are computed in JS (positionVoicePanel in
+       popup.js) from the popup's real, live window.innerHeight each time
+       it opens, so it uses whatever room genuinely exists on screen
+       without guessing a fixed number or reserving space nothing needs
+       when the dropdown isn't open. */
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    z-index: 20;
+    background: var(--bg);
+    border: 1px solid var(--separator);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+  }
+  .combo-search { height: 26px; flex: none; }
+  .combo-list { list-style: none; margin: 0; padding: 0; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .combo-item {
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--label);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .combo-item:hover, .combo-item.is-active { background: var(--fill); }
+  .combo-item.is-selected { font-weight: 600; }
+  .combo-empty { padding: 10px 8px; color: var(--label-secondary); font-size: 12px; text-align: center; }
+
+  .transcript-toolbar { display: flex; align-items: center; justify-content: space-between; }
+
+  .icon-btn-group { display: flex; gap: 4px; }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    color: var(--label-secondary);
+    border-radius: var(--radius-sm);
+  }
+  .icon-btn:hover:not(:disabled) { background: var(--fill); color: var(--label); }
+
+  .text-btn-group { display: flex; gap: 10px; }
+  .text-btn {
+    background: transparent;
+    color: var(--accent);
+    font-weight: 500;
+    font-size: 12px;
+    height: auto;
+    padding: 0;
+    border-radius: 0;
+  }
+  .text-btn:hover:not(:disabled) { text-decoration: underline; }
+  .text-btn:disabled { text-decoration: none; }
+
+  .hint {
+    font-size: 10px;
+    color: var(--label-secondary);
+    line-height: 1.45;
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--separator);
+  }
+  .field-hint {
+    font-size: 11px;
+    color: var(--label-secondary);
+    line-height: 1.4;
+    margin: 0;
+  }
+  .piper-download-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .piper-download-hint .field-hint { color: var(--label-secondary); }
+  .piper-download-hint .text-btn { display: inline-flex; align-items: center; gap: 4px; }
+  #status, #sttStatus {
+    font-size: 10px;
+    color: var(--danger);
+    margin: 0;
+    min-height: 13px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="segmented mode-switch" role="tablist" aria-label="Mode">
+      <button id="tabRead" class="is-active" role="tab" aria-selected="true" aria-controls="readView" type="button">Read Aloud</button>
+      <button id="tabDictate" role="tab" aria-selected="false" aria-controls="dictateView" type="button">Voice to Text</button>
+    </div>
+
+    <div id="readView" class="view" role="tabpanel" aria-labelledby="tabRead">
+      <button id="readBtn">Read Selection</button>
+
+      <div class="settings">
+        <div class="field">
+          <div class="field-row">
+            <label for="rate">Speed</label>
+            <span id="rateLabel" class="field-value">1.0x</span>
+          </div>
+          <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1" />
+        </div>
+
+        <div class="field">
+          <label id="voiceLabel">Voice</label>
+          <div class="combo" id="voiceCombo">
+            <button type="button" id="voiceTrigger" class="combo-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="voiceLabel">
+              <span class="combo-trigger-label" id="voiceTriggerLabel">Default voice</span>
+              <span class="combo-trigger-caret">▾</span>
+            </button>
+            <div class="combo-panel" id="voicePanel" hidden>
+              <input type="text" id="voiceSearch" class="combo-search" placeholder="Search language, country, or voice" autocomplete="off" />
+              <ul id="voiceList" class="combo-list" role="listbox" aria-labelledby="voiceLabel"></ul>
+            </div>
+          </div>
+          <select id="voice"></select>
+        </div>
+
+        <div class="field">
+          <label for="translateTarget">Translate to</label>
+          <select id="translateTarget">
+            <option value="">Off (read as-is)</option>
+            <option value="ur">Urdu</option>
+            <option value="hi">Hindi</option>
+            <option value="ar">Arabic</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="zh-CN">Chinese</option>
+            <option value="pt">Portuguese</option>
+            <option value="ru">Russian</option>
+            <option value="ja">Japanese</option>
+          </select>
+          <p id="voiceHint" class="field-hint" aria-live="polite"></p>
+          <div id="piperDownloadHint" class="piper-download-hint" aria-live="polite" hidden>
+            <p class="field-hint">Urdu voice needs to be installed to use Urdu translation.</p>
+            <button id="downloadUrduVoiceBtn" class="text-btn" type="button">
+              <span class="download-icon" aria-hidden="true">⬇</span> Download Urdu voice
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint">Highlight text on any page, then click "Read Selection" - or right-click the highlighted text and choose "Read Selected Text Aloud". "Translate to" applies to both.</p>
+      <p id="status" aria-live="polite"></p>
+      <button id="diagnosticsBtn" class="text-btn" type="button">Diagnostics</button>
+    </div>
+
+    <div id="dictateView" class="view" role="tabpanel" aria-labelledby="tabDictate" hidden>
+      <div class="field">
+        <label for="sttLang">Language</label>
+        <select id="sttLang">
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="en-AU">English (Australia)</option>
+          <option value="en-CA">English (Canada)</option>
+          <option value="en-IN">English (India)</option>
+        </select>
+      </div>
+
+      <button id="recordBtn">Start Listening</button>
+
+      <div class="field">
+        <label for="transcript">Transcript</label>
+        <textarea id="transcript" rows="4" placeholder="Your words will appear here..."></textarea>
+        <div class="transcript-toolbar">
+          <div class="icon-btn-group">
+            <button id="undoBtn" class="icon-btn" type="button" aria-label="Undo" title="Undo" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>
+            </button>
+            <button id="redoBtn" class="icon-btn" type="button" aria-label="Redo" title="Redo" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 14 20 9 15 4"></polyline><path d="M4 20v-7a4 4 0 0 1 4-4h12"></path></svg>
+            </button>
+          </div>
+          <div class="text-btn-group">
+            <button id="revertBtn" class="text-btn" type="button" disabled>Revert</button>
+            <button id="clearBtn" class="text-btn" type="button">Clear</button>
+            <button id="copyBtn" class="text-btn" type="button">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint">Needs an internet connection - Chrome sends your speech to Google to transcribe it.</p>
+      <p id="sttStatus" aria-live="polite"></p>
+      <button id="fixMicBtn" class="text-btn" type="button" hidden>Allow microphone in a new tab</button>
+    </div>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

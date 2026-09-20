@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Read Aloud - Diagnostics</title>
+<style>
+  :root {
+    --bg: #ffffff; --label: #1d1d1f; --label-secondary: #6b7280;
+    --separator: rgba(0,0,0,0.1); --fill: #f7f7f9; --accent: #0066cc;
+    --danger: #dc2626; --ok: #15803d; --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 24px 60px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px; color: var(--label); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: var(--label-secondary); margin: 0 0 20px; line-height: 1.5; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  button {
+    font: inherit; border: 1px solid var(--separator); background: #fff;
+    color: var(--label); border-radius: var(--radius); height: 30px;
+    padding: 0 12px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:hover:not(:disabled) { background: var(--fill); }
+  button.primary:hover:not(:disabled) { background: #0052a3; }
+  button:disabled { opacity: .4; cursor: default; }
+  #msg { color: var(--label-secondary); margin-left: 4px; min-height: 16px; }
+
+  .run {
+    border: 1px solid var(--separator); border-radius: var(--radius);
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .run-head {
+    display: flex; gap: 12px; align-items: baseline; padding: 10px 12px;
+    cursor: pointer; background: var(--fill);
+  }
+  .run-head:hover { background: #f0f0f3; }
+  .run-head .when { font-variant-numeric: tabular-nums; color: var(--label-secondary); }
+  .run-head .what { font-weight: 600; }
+  .run-head .meta { color: var(--label-secondary); margin-left: auto; font-variant-numeric: tabular-nums; }
+  .badge { border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; }
+  .badge.ok { background: #dcfce7; color: var(--ok); }
+  .badge.bad { background: #fee2e2; color: var(--danger); }
+  .badge.neutral { background: #e5e7eb; color: var(--label-secondary); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 12px; border-top: 1px solid var(--separator); vertical-align: top; }
+  th { color: var(--label-secondary); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  td.t, td.dur { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.failed td { background: #fef2f2; }
+  tr.failed .stage { color: var(--danger); font-weight: 600; }
+  .ctx { color: var(--label-secondary); font-size: 11px; }
+  .data { color: var(--label-secondary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; word-break: break-word; }
+  .err { color: var(--danger); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; word-break: break-word; }
+  .empty { color: var(--label-secondary); padding: 30px 0; }
+  .note {
+    margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--separator);
+    color: var(--label-secondary); line-height: 1.6; font-size: 12px;
+  }
+  code { background: var(--fill); padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Read Aloud diagnostics</h1>
+    <p class="sub">
+      The last 20 runs, newest first. Each row is one stage of a single read, with
+      how long it took and the exact error if it failed. Click a run to expand it.
+    </p>
+
+    <div class="toolbar">
+      <button id="copyLatest" class="primary" type="button">Copy latest as JSON</button>
+      <button id="copyAll" type="button">Copy all</button>
+      <button id="download" type="button">Download .json</button>
+      <button id="refresh" type="button">Refresh</button>
+      <button id="clear" type="button">Clear</button>
+      <span id="msg" aria-live="polite"></span>
+    </div>
+
+    <div id="runs"></div>
+
+    <p class="note">
+      <strong>What is recorded:</strong> timings, stage outcomes, error messages, character
+      and byte counts, the chosen voice, and the page's origin (for example
+      <code>https://example.com</code>).
+      <strong>What is never recorded:</strong> the selected text, the translated text,
+      any URL path or query, and your dictation transcript - only counts of them.
+      <br />
+      <code>subprocessMs</code> covers the whole Piper process: spawn, loading the
+      voice model, and synthesis. Piper reports no separate model-load timing, and its
+      only load-related output echoes the input text back, which is not something worth
+      putting in a file you might share. Chrome starts a fresh Piper process for every
+      chunk, so that cost is paid per chunk.
+    </p>
+  </div>
+  <script src="trace-viewer.js"></script>
+</body>
+</html>

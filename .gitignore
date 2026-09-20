@@ -1,0 +1,5 @@
+# Build output - published as a GitHub Release asset instead, not tracked
+# in git. See installer/BUILD.md.
+installer/*.pkg
+
+.DS_Store

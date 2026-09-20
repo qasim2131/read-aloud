@@ -1,0 +1,24 @@
+#!/bin/bash
+# macOS runs .pkg postinstall scripts as root. Our actual install work must
+# run as the logged-in user instead - it writes into THAT user's home
+# directory (~/Library/Application Support/...) and pip-installs a package
+# for THAT user, not root. Running it as root would put everything in
+# /var/root, invisible to the user's own Chrome.
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_FILE="/tmp/readaloud_piper_install.log"
+
+CONSOLE_USER="$(stat -f%Su /dev/console)"
+if [ -z "$CONSOLE_USER" ] || [ "$CONSOLE_USER" = "root" ]; then
+    echo "Could not determine the logged-in user - aborting." >> "$LOG_FILE"
+    exit 1
+fi
+USER_HOME="$(dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory | awk '{print $2}')"
+
+echo "Installing as user: $CONSOLE_USER (home: $USER_HOME)" >> "$LOG_FILE"
+
+sudo -u "$CONSOLE_USER" HOME="$USER_HOME" /usr/bin/python3 \
+    "$SCRIPT_DIR/install_piper_urdu.py" >> "$LOG_FILE" 2>&1
+
+exit 0

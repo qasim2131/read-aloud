@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Read Aloud - Highlight to Speech",
+  "version": "1.0.0",
+  "description": "Reads highlighted text aloud using Chrome's built-in Web Speech API. Free, offline, adjustable reading speed.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4F60jJjDmqBlPp23Ub/iWdY+uNaShivXITwTEp7fC+zu254TnEn6jHuT44h7EJMjLngObwHf58i2oh4TLyBb2GlJL6Br83VfYxvBXqxyIT3MTjqu7eQqXkkVQk4kbxRLNpzEzKKeGGIxtxf32lOdJDkrVJseM5mnW3QaMJLK2lSGlR3BeGg1LMs4auZ37l7EoTTwz+jmCkndjZEgu0ZcUs024u2Nm9cCOSctdBjDjlmmtBu6Br6egTmtR1pMyMKn7Dbs6OqQnv3LJO/LOqfaTu1EoGxTgbStVSzXMxCqgk1rJUSeKJ//CVN3xvqWMMu0EgNZO0A2HH3AQkrwF0wb2wIDAQAB",
+  "permissions": ["contextMenus", "storage", "nativeMessaging", "scripting", "activeTab", "offscreen"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Read Aloud"
+  }
+}
