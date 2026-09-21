@@ -236,14 +236,19 @@ function voiceBareName(name) {
   return name.replace(/\s*\(.*/, "").trim();
 }
 
-// "Country (Language) · Voice name" using the voice's OWN locale code -
-// never a guessed country. Intl.DisplayNames is a built-in Chrome API
-// (needs no library) that turns e.g. "ko-KR" into "South Korea"/"Korean".
-// Falls back to "Language · Voice name" for a voice with no region subtag,
-// and to the bare name alone if the locale can't be resolved at all -
-// always favors an honest, less-specific label over a wrong guess.
+// "Country (Language)" using the voice's OWN locale code - never a guessed
+// country. Intl.DisplayNames is a built-in Chrome API (needs no library)
+// that turns e.g. "ko-KR" into "South Korea"/"Korean". Falls back to just
+// "Language" for a voice with no region subtag, and to the bare name alone
+// if the locale can't be resolved at all - always favors an honest,
+// less-specific label over a wrong guess.
+//
+// `full` keeps the old "Country (Language) · Voice name" form too - not
+// shown, only used for sorting (so same-country-language voices land next
+// to each other) and for search, so searching by voice name still works
+// even for a voice whose name isn't shown in the visible label.
 let languageNames, regionNames;
-function voiceLabel(v) {
+function voiceLabelParts(v) {
   const name = voiceBareName(v.name);
   const [langCode, regionCode] = (v.lang || "").split("-");
   languageNames ??= new Intl.DisplayNames(["en"], { type: "language" });
@@ -252,9 +257,11 @@ function voiceLabel(v) {
   try { language = langCode ? languageNames.of(langCode) : null; } catch {}
   try { country = regionCode ? regionNames.of(regionCode) : null; } catch {}
   if (country) country = country.replace(/^world$/i, "World"); // ar-001 etc.
-  if (country && language) return `${country} (${language}) · ${name}`;
-  if (language) return `${language} · ${name}`;
-  return name;
+  const primary = country && language ? `${country} (${language})` : (language || name);
+  const full = country && language ? `${country} (${language}) · ${name}`
+    : language ? `${language} · ${name}`
+    : name;
+  return { primary, name, full };
 }
 
 // DEFAULT_VOICE_LABEL is what the trigger button and the list's first row
@@ -281,18 +288,31 @@ async function populateVoices(selectedVoiceName) {
 
   const labeled = availableVoices
     .filter((v) => !NOVELTY_VOICE_NAMES.has(voiceBareName(v.name)))
-    .map((v) => ({ voice: v, label: voiceLabel(v) }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .map((v) => ({ voice: v, ...voiceLabelParts(v) }))
+    .sort((a, b) => a.full.localeCompare(b.full));
 
-  for (const { voice, label } of labeled) {
+  // A voice's name is only shown at all when it's actually needed to tell
+  // voices apart - i.e. when more than one voice shares the same
+  // "Country (Language)" label. Everyone else just shows the country/language.
+  const primaryCounts = new Map();
+  for (const l of labeled) primaryCounts.set(l.primary, (primaryCounts.get(l.primary) || 0) + 1);
+  for (const l of labeled) {
+    l.secondary = primaryCounts.get(l.primary) > 1 ? l.name : null;
+    l.display = l.secondary ? `${l.primary} · ${l.secondary}` : l.primary;
+  }
+
+  for (const { voice, display } of labeled) {
     const opt = document.createElement("option");
     opt.value = voice.name; // unchanged: the exact name pickVoice() matches on
-    opt.textContent = label;
+    opt.textContent = display;
     voiceSelect.appendChild(opt);
   }
   voiceSelect.value = selectedVoiceName || "";
 
-  voiceEntries = [{ value: "", label: DEFAULT_VOICE_LABEL }, ...labeled.map((l) => ({ value: l.voice.name, label: l.label }))];
+  voiceEntries = [
+    { value: "", primary: DEFAULT_VOICE_LABEL, secondary: null, display: DEFAULT_VOICE_LABEL, full: DEFAULT_VOICE_LABEL },
+    ...labeled.map((l) => ({ value: l.voice.name, primary: l.primary, secondary: l.secondary, display: l.display, full: l.full })),
+  ];
   renderVoiceList(voiceEntries);
   updateVoiceTriggerLabel();
   updateVoiceHint();
@@ -300,7 +320,7 @@ async function populateVoices(selectedVoiceName) {
 
 function updateVoiceTriggerLabel() {
   const current = voiceEntries.find((e) => e.value === voiceSelect.value);
-  voiceTriggerLabel.textContent = current ? current.label : DEFAULT_VOICE_LABEL;
+  voiceTriggerLabel.textContent = current ? current.display : DEFAULT_VOICE_LABEL;
 }
 
 function renderVoiceList(entries) {
@@ -318,7 +338,16 @@ function renderVoiceList(entries) {
     li.className = "combo-item";
     li.setAttribute("role", "option");
     li.dataset.value = entry.value;
-    li.textContent = entry.label;
+    const primarySpan = document.createElement("span");
+    primarySpan.className = "combo-item-primary";
+    primarySpan.textContent = entry.primary;
+    li.appendChild(primarySpan);
+    if (entry.secondary) {
+      const secondarySpan = document.createElement("span");
+      secondarySpan.className = "combo-item-secondary";
+      secondarySpan.textContent = ` · ${entry.secondary}`;
+      li.appendChild(secondarySpan);
+    }
     if (entry.value === voiceSelect.value) li.classList.add("is-selected");
     voiceList.appendChild(li);
   });
@@ -370,7 +399,7 @@ voiceTrigger.addEventListener("click", () => {
 voiceSearch.addEventListener("input", () => {
   const term = voiceSearch.value.trim().toLowerCase();
   const filtered = term
-    ? voiceEntries.filter((e) => e.value === "" || e.label.toLowerCase().includes(term))
+    ? voiceEntries.filter((e) => e.value === "" || e.full.toLowerCase().includes(term))
     : voiceEntries;
   renderVoiceList(filtered);
 });
